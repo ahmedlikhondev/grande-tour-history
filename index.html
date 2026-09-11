@@ -438,334 +438,42 @@ footer p{font-size:12.5px; color:var(--muted); margin:0;}
 </div>
 
 <script>
-(function () {
-
+(function(){
   var regionsEl = document.getElementById('regions');
-  var sections = Array.prototype.slice.call(
-    regionsEl.querySelectorAll('.region')
-  );
-
-  var chips = Array.prototype.slice.call(
-    document.querySelectorAll('.chip')
-  );
-
+  var sections = Array.prototype.slice.call(regionsEl.querySelectorAll('.region'));
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
   var search = document.getElementById('search');
   var emptyState = document.getElementById('empty-state');
-
   var activeRegion = 'all';
 
-
-  /* =========================================
-     HEIGHT CALCULATION
-     ========================================= */
-
-  function getPageHeight() {
-
-    return Math.max(
-      document.body.scrollHeight,
-      document.body.offsetHeight,
-      document.body.clientHeight,
-
-      document.documentElement.scrollHeight,
-      document.documentElement.offsetHeight,
-      document.documentElement.clientHeight
-    );
-
-  }
-
-
-  function sendHeight() {
-
-    var height = getPageHeight();
-
-    window.parent.postMessage(
-      {
-        type: 'tourHistoryHeight',
-        height: height
-      },
-      '*'
-    );
-
-  }
-
-
-  function sendHeightAfterLayout() {
-
-    requestAnimationFrame(function () {
-
-      requestAnimationFrame(function () {
-
-        sendHeight();
-
-      });
-
-    });
-
-  }
-
-
-  /* =========================================
-     FILTER / SEARCH
-     ========================================= */
-
-  function applyFilters() {
-
-    var q = search.value.trim().toLowerCase();
-
-    var anyVisible = false;
-
-
-    sections.forEach(function (section) {
-
-      var region = section.getAttribute('data-region');
-
-      var regionMatch =
-        activeRegion === 'all' ||
-        activeRegion === region;
-
-      var rows = Array.prototype.slice.call(
-        section.querySelectorAll('.tour-row')
-      );
-
-      var sectionHasVisible = false;
-
-
-      rows.forEach(function (row) {
-
-        var text = row.textContent.toLowerCase();
-
-        var rowMatch =
-          regionMatch &&
-          (
-            q === '' ||
-            text.indexOf(q) !== -1
-          );
-
-
-        row.style.display =
-          rowMatch ? '' : 'none';
-
-
-        if (rowMatch) {
-
-          sectionHasVisible = true;
-          anyVisible = true;
-
-        }
-
-      });
-
-
-      section.style.display =
-        sectionHasVisible ? '' : 'none';
-
-    });
-
-
-    emptyState.style.display =
-      anyVisible ? 'none' : 'block';
-
-
-    /*
-      Filtering changes the page height,
-      so send the new height to Webflow.
-    */
-
-    sendHeightAfterLayout();
-
-  }
-
-
-  /* =========================================
-     REGION BUTTONS
-     ========================================= */
-
-  chips.forEach(function (chip) {
-
-    chip.addEventListener('click', function () {
-
-      chips.forEach(function (c) {
-
-        c.setAttribute(
-          'aria-pressed',
-          'false'
-        );
-
-      });
-
-
-      chip.setAttribute(
-        'aria-pressed',
-        'true'
-      );
-
-
-      activeRegion =
-        chip.getAttribute('data-region');
-
-
+  chips.forEach(function(chip){
+    chip.addEventListener('click', function(){
+      chips.forEach(function(c){ c.setAttribute('aria-pressed','false'); });
+      chip.setAttribute('aria-pressed','true');
+      activeRegion = chip.getAttribute('data-region');
       applyFilters();
-
     });
-
   });
 
+  search.addEventListener('input', applyFilters);
 
-  /* =========================================
-     SEARCH
-     ========================================= */
-
-  search.addEventListener(
-    'input',
-    applyFilters
-  );
-
-
-  /* =========================================
-     INITIAL LOAD
-     ========================================= */
-
-  window.addEventListener(
-    'load',
-    function () {
-
-      sendHeight();
-
-      setTimeout(sendHeight, 300);
-      setTimeout(sendHeight, 800);
-      setTimeout(sendHeight, 1500);
-
-      /*
-        Wait for Google Fonts.
-      */
-
-      if (
-        document.fonts &&
-        document.fonts.ready
-      ) {
-
-        document.fonts.ready.then(function () {
-
-          sendHeight();
-
-        });
-
-      }
-
-    }
-  );
-
-
-  /* =========================================
-     WINDOW RESIZE
-     Desktop / Laptop / Tablet / Mobile
-     ========================================= */
-
-  window.addEventListener(
-    'resize',
-    function () {
-
-      sendHeight();
-
-    }
-  );
-
-
-  /* =========================================
-     RESIZE OBSERVER
-     Detects content height changes
-     ========================================= */
-
-  if ('ResizeObserver' in window) {
-
-    var resizeObserver =
-      new ResizeObserver(function () {
-
-        sendHeight();
-
+  function applyFilters(){
+    var q = search.value.trim().toLowerCase();
+    var anyVisible = false;
+    sections.forEach(function(section){
+      var region = section.getAttribute('data-region');
+      var regionMatch = (activeRegion === 'all' || activeRegion === region);
+      var rows = Array.prototype.slice.call(section.querySelectorAll('.tour-row'));
+      var sectionHasVisible = false;
+      rows.forEach(function(row){
+        var text = row.textContent.toLowerCase();
+        var rowMatch = regionMatch && (q === '' || text.indexOf(q) !== -1);
+        row.style.display = rowMatch ? '' : 'none';
+        if(rowMatch){ sectionHasVisible = true; anyVisible = true; }
       });
-
-
-    resizeObserver.observe(
-      document.body
-    );
-
+      section.style.display = sectionHasVisible ? '' : 'none';
+    });
+    emptyState.style.display = anyVisible ? 'none' : 'block';
   }
-
-
-  /* =========================================
-     MUTATION OBSERVER
-     Detects filtering/display changes
-     ========================================= */
-
-  if ('MutationObserver' in window) {
-
-    var mutationObserver =
-      new MutationObserver(function () {
-
-        sendHeight();
-
-      });
-
-
-    mutationObserver.observe(
-      document.body,
-      {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class']
-      }
-    );
-
-  }
-
-
-  /* =========================================
-     WEBFLOW CAN REQUEST HEIGHT
-     Useful for popup/modal
-     ========================================= */
-
-  window.addEventListener(
-    'message',
-    function (event) {
-
-      if (
-        event.data &&
-        event.data.type ===
-        'tourHistoryRequestHeight'
-      ) {
-
-        /*
-          Wait until popup becomes visible,
-          then calculate the real height.
-        */
-
-        setTimeout(function () {
-
-          sendHeight();
-
-        }, 100);
-
-
-        setTimeout(function () {
-
-          sendHeight();
-
-        }, 400);
-
-
-        setTimeout(function () {
-
-          sendHeight();
-
-        }, 800);
-
-      }
-
-    }
-  );
-
-
 })();
 </script>
