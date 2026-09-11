@@ -478,9 +478,17 @@ footer p{font-size:12.5px; color:var(--muted); margin:0;}
 })();
 </script>
 
+
 <script>
+(function () {
   function sendHeight() {
-    const height = document.documentElement.scrollHeight;
+    const height = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.offsetHeight
+    );
+
     window.parent.postMessage(
       {
         type: "tourHistoryHeight",
@@ -490,14 +498,26 @@ footer p{font-size:12.5px; color:var(--muted); margin:0;}
     );
   }
 
-  window.addEventListener("load", sendHeight);
+  window.addEventListener("load", function () {
+    sendHeight();
+
+    setTimeout(sendHeight, 300);
+    setTimeout(sendHeight, 1000);
+    setTimeout(sendHeight, 2000);
+  });
+
   window.addEventListener("resize", sendHeight);
 
-  // Detect changes in content/layout
-  const observer = new ResizeObserver(sendHeight);
-  observer.observe(document.documentElement);
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(function () {
+      sendHeight();
+    });
 
-  // Extra check after fonts/images finish loading
-  setTimeout(sendHeight, 500);
-  setTimeout(sendHeight, 1500);
+    observer.observe(document.body);
+    observer.observe(document.documentElement);
+  }
+})();
 </script>
+
+</body>
+</html>
